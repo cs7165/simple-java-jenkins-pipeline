@@ -6,16 +6,31 @@ pipeline {
         maven 'Maven3'
     }
 
+    options {
+        timestamps()
+    }
+
     stages {
 
-        stage('Check Agent') {
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Check Agent & Tools') {
             steps {
                 sh '''
-                  echo "Running on Jenkins Agent:"
-                  hostname
-                  whoami
-                  java -version
-                  mvn -version
+                    set -e
+                    echo "===== Agent Details ====="
+                    hostname
+                    whoami
+
+                    echo "===== Java Version ====="
+                    java -version
+
+                    echo "===== Maven Version ====="
+                    mvn -version
                 '''
             }
         }
@@ -26,17 +41,20 @@ pipeline {
             }
         }
 
-        stage('Compile') {
+        stage('Build (Compile)') {
             steps {
-                sh 'mvn compile'
+                sh '''
+                    set -e
+                    mvn clean compile
+                '''
             }
         }
 
         stage('Run Java App') {
             steps {
                 sh '''
-                  javac src/main/java/HelloWorld.java
-                  java -cp src/main/java HelloWorld
+                    set -e
+                    mvn exec:java -Dexec.mainClass=HelloWorld
                 '''
             }
         }
@@ -44,10 +62,13 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline executed successfully on agent 🚀"
+            echo "✅ Pipeline executed successfully on Linux agent 🚀"
         }
         failure {
-            echo "Pipeline failed ❌"
+            echo "❌ Pipeline failed. Check logs for details."
+        }
+        always {
+            echo "Pipeline finished."
         }
     }
 }
